@@ -18,9 +18,9 @@ architecture Behavioral of door_controller is
     signal state   : state_type;
     signal counter : integer range 0 to TIMER_MAX;
 begin
-    process(clk, reset)
+    process(clk, rst)
     begin
-        if reset = '1' then
+        if rst = '1' then
             state   <= IDLE;
             counter <= 0;
             door    <= '0';

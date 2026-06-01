@@ -15,13 +15,14 @@ entity controle_elevador is
 end controle_elevador;
 
 architecture Behavioral of controle_elevador is
-    signal estado : unsigned(1 downto 0) := "00";
-    signal dir    : integer range -1 to 1 := 0;   -- -1 = descendo, 0 = parado, 1 = subindo
+    signal estado   : unsigned(1 downto 0) := "00";
+    signal dir      : integer range -1 to 1 := 0;   -- -1 = descendo, 0 = parado, 1 = subindo
+    signal next_dir : integer range -1 to 1 := 0; 
     signal arrive_int : STD_LOGIC;
 begin
     andar_atual <= std_logic_vector(estado);
     
-    -- GeraÃ§Ã£o de arrive e clear (combinacional)
+    -- Geração de arrive e clear (combinacional)
     process(estado, pedidos)
         variable idx : integer;
     begin
@@ -37,55 +38,86 @@ begin
     end process;
     arrive <= arrive_int;
     
-    -- LÃ³gica de decisÃ£o da prÃ³xima direÃ§Ã£o (com memÃ³ria)
-    process(estado, pedidos, dir, busy)
-        variable tem_pedido_acima, tem_pedido_abaixo : boolean;
+    -- Lógica de decisão da próxima direção (com memória)
+ process(estado, pedidos, dir, busy)
+        variable tem_pedido_acima  : boolean;
+        variable tem_pedido_abaixo : boolean;
     begin
-        -- Verifica se hÃ¡ pedido em andar superior
-        tem_pedido_acima := false;
-        for i in to_integer(estado)+1 to 3 loop
-            if pedidos(i) = '1' then
-                tem_pedido_acima := true;
-            end if;
-        end loop;
-        
-        -- Verifica se hÃ¡ pedido em andar inferior
+    
+        tem_pedido_acima  := false;
         tem_pedido_abaixo := false;
-        for i in 0 to to_integer(estado)-1 loop
-            if pedidos(i) = '1' then
-                tem_pedido_abaixo := true;
-            end if;
-        end loop;
-        
-        -- Atualiza direÃ§Ã£o (somente se nÃ£o estiver ocupado pela porta)
+    
+        case to_integer(estado) is
+    
+            when 0 =>
+                if pedidos(1)='1' or pedidos(2)='1' or pedidos(3)='1' then
+                    tem_pedido_acima := true;
+                end if;
+    
+            when 1 =>
+                if pedidos(2)='1' or pedidos(3)='1' then
+                    tem_pedido_acima := true;
+                end if;
+    
+                if pedidos(0)='1' then
+                    tem_pedido_abaixo := true;
+                end if;
+    
+            when 2 =>
+                if pedidos(3)='1' then
+                    tem_pedido_acima := true;
+                end if;
+    
+                if pedidos(0)='1' or pedidos(1)='1' then
+                    tem_pedido_abaixo := true;
+                end if;
+    
+            when 3 =>
+                if pedidos(0)='1' or pedidos(1)='1' or pedidos(2)='1' then
+                    tem_pedido_abaixo := true;
+                end if;
+    
+            when others =>
+                null;
+    
+        end case;
+    
+        next_dir <= dir;
+    
         if busy = '0' then
+    
             if dir = 1 and tem_pedido_acima then
-                -- continua subindo
-                null;
+                next_dir <= 1;
+    
             elsif dir = -1 and tem_pedido_abaixo then
-                -- continua descendo
-                null;
+                next_dir <= -1;
+    
             elsif tem_pedido_acima then
-                dir <= 1;
+                next_dir <= 1;
+    
             elsif tem_pedido_abaixo then
-                dir <= -1;
+                next_dir <= -1;
+    
             else
-                dir <= 0;
+                next_dir <= 0;
+    
             end if;
         end if;
+    
     end process;
     
-    -- MovimentaÃ§Ã£o sÃ­ncrona (atualiza estado)
+    -- Movimentação síncrona (atualiza estado)
     process(clk, rst)
     begin
         if rst = '1' then
             estado <= "00";
             dir <= 0;
         elsif rising_edge(clk) then
-            -- Se hÃ¡ pedido no andar atual e a porta ainda nÃ£o estÃ¡ ocupada (busy=0),
-            -- geramos arrive e nÃ£o movemos neste ciclo (o door_controller vai ativar busy)
+            -- Se há pedido no andar atual e a porta ainda não está ocupada (busy=0),
+            -- geramos arrive e não movemos neste ciclo (o door_controller vai ativar busy)
+            dir <= next_dir;
             if pedidos(to_integer(estado)) = '1' then
-                -- NÃ£o se move, aguarda o door_controller
+                -- Não se move, aguarda o door_controller
                 null;
             elsif busy = '0' then
                 if dir = 1 then

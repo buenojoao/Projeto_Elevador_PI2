@@ -6,20 +6,22 @@ entity top_elevador is
         clk      : in  STD_LOGIC;
         rst      : in  STD_LOGIC;
         B0, B1, B2, B3 : in  STD_LOGIC;
-        door     : out STD_LOGIC;      -- sinal da porta (LED)
-        andar    : out STD_LOGIC_VECTOR(1 downto 0)  -- display do andar
+        door     : out STD_LOGIC;
+        andar    : out STD_LOGIC_VECTOR(1 downto 0)
     );
 end top_elevador;
 
 architecture Structural of top_elevador is
+
     signal pedidos : STD_LOGIC_VECTOR(3 downto 0);
     signal clear   : STD_LOGIC_VECTOR(3 downto 0);
     signal arrive  : STD_LOGIC;
     signal busy    : STD_LOGIC;
     signal andar_s : STD_LOGIC_VECTOR(1 downto 0);
+
 begin
-    -- Instância da memória de pedidos (Miguel)
-    mem: entity work.memoria_pedidos
+
+    mem : entity work.memoria_pedidos
         port map (
             clk     => clk,
             rst     => rst,
@@ -30,31 +32,30 @@ begin
             clear   => clear,
             pedidos => pedidos
         );
-    
-    -- Instância do controle de movimento (Sthefany)
-    ctrl: entity work.controle_elevador
+
+    ctrl : entity work.controle_elevador
         port map (
-            clk      => clk,
-            rst      => rst,
-            pedidos  => pedidos,
-            busy     => busy,
+            clk         => clk,
+            rst         => rst,
+            pedidos     => pedidos,
+            busy        => busy,
             andar_atual => andar_s,
-            arrive   => arrive,
-            clear    => clear
+            arrive      => arrive,
+            clear       => clear
         );
-    
-    -- Instância do controlador de porta (João)
-    porta: entity work.door_controller
-        generic map ( TIMER_MAX => 10 )  -- depois ajuste para 50_000_000
+
+    porta : entity work.door_controller
+        generic map (
+            TIMER_MAX => 10
+        )
         port map (
             clk    => clk,
-            reset  => rst,
+            rst    => rst,
             arrive => arrive,
             door   => door,
             busy   => busy
         );
-    
-    -- Saída do andar atual
+
     andar <= andar_s;
-    
+
 end Structural;
