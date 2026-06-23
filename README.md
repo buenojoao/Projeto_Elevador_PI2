@@ -42,5 +42,6 @@ O projeto possui:
 
 ## Autores
 
-- João Victor Bueno
-- Miguel
+- João Victor Bueno 
+- Miguel Kohmann
+- Sthefany Alves
